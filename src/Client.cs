@@ -15,5 +15,16 @@ namespace StealthClient
         {
             InitializeComponent();
         }
+
+        private void Client_Load(object sender, EventArgs e)
+        {
+            this.Hide();
+            Authenticate auth = new Authenticate();
+            DialogResult authDr = new DialogResult();
+
+            authDr = auth.ShowDialog();
+            if (authDr == DialogResult.OK)
+                this.Show();
+        }
     }
 }

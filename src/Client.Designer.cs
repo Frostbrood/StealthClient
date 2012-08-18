@@ -37,6 +37,7 @@
             this.ClientSize = new System.Drawing.Size(805, 421);
             this.Name = "Client";
             this.Text = "Stealth Client";
+            this.Load += new System.EventHandler(this.Client_Load);
             this.ResumeLayout(false);
 
         }
