@@ -1,4 +1,4 @@
-acwebtool
+StealthClient
 =========
 
-Browsing Tool
+AC-Web Browsing Tool
