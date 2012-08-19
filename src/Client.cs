@@ -24,7 +24,13 @@ namespace StealthClient
 
             authDr = auth.ShowDialog();
             if (authDr == DialogResult.OK)
-                this.Show();
+            {
+
+            }
+            else
+            {
+                MessageBox.Show("The client would close now, but that's disabled for the sake of testing.");
+            }
         }
     }
 }

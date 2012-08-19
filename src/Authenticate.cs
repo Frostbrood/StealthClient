@@ -6,43 +6,66 @@ namespace StealthClient
 {
     public partial class Authenticate : Form
     {
-        static string uGUID;
-        static string uUser;
-        static string uPass;
-
         public Authenticate()
         {
             InitializeComponent();
         }
 
-        void GetGUID()
-        {
-            RegistryKey GUIDKey = Registry.CurrentUser.CreateSubKey("Stealth Client");
-            string uGUID = (string)GUIDKey.GetValue("GUID");
-            if (uGUID == null)
-            {
-                uGUID = Guid.NewGuid().ToString();
-                GUIDKey.SetValue("GUID", uGUID);
-            }
-        }
+        static string uUser;
+        static string uPass;
 
         bool AuthenticateUser()
         {
-            GetGUID();
             uUser = tbUser.Text;
             uPass = tbPass.Text;
 
-            // Todo: auth user with user, pass and GUID
-            return true;
+            if (Session.AuthenticateUser(uUser, uPass))
+                return true;
+            else return false;
         }
 
-        private void btnLogin_Click(object sender, EventArgs e)
+        void GetList()
+        {
+            // TODO: Get and add sessions to listbox
+        }
+
+        private void btnGetList_Click(object sender, EventArgs e)
         {
             if (AuthenticateUser())
+                GetList();
+            else
+            {
+                uUser = null;
+                uPass = null;
+                tbUser.Text = "";
+                tbPass.Text = "";
+                MessageBox.Show("Access denied");
+            }
+        }
+        private void btnSelectSession_Click(object sender, EventArgs e)
+        {
+            if (lbSessions.SelectedIndex != -1 && Session.GetSession(lbSessions.SelectedItem.ToString()))
             {
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
+            else
+                MessageBox.Show("Session unavailable.");
+        }
+
+        private void tb_TextChanged(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(tbUser.Text) && !string.IsNullOrEmpty(tbPass.Text))
+                btnGetList.Enabled = true;
+            else
+                btnGetList.Enabled = false;
+        }
+        private void lbSessions_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lbSessions.SelectedIndex != -1)
+                btnSelectSession.Enabled = true;
+            else
+                btnSelectSession.Enabled = false;
         }
     }
 }
