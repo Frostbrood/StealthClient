@@ -1,5 +1,3 @@
-DROP TABLES IF EXISTS `verification`, `verification_guid`;
-
 CREATE TABLE `verification` (
 	`id` SMALLINT UNSIGNED NOT NULL,
 	`username` TEXT(12) NOT NULL,
