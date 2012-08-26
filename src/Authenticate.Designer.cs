@@ -51,6 +51,7 @@
             this.tbPass.Name = "tbPass";
             this.tbPass.Size = new System.Drawing.Size(163, 20);
             this.tbPass.TabIndex = 1;
+            this.tbPass.UseSystemPasswordChar = true;
             this.tbPass.TextChanged += new System.EventHandler(this.tb_TextChanged);
             // 
             // lblUser
