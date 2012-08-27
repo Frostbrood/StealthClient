@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Ionic.Zip;
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Timers;
 using System.Windows.Forms;
-using Ionic.Zip;
 
 namespace Updater
 {
@@ -16,67 +16,69 @@ namespace Updater
             InitializeComponent();
         }
 
-        const string url = @"http://www.urltozipfile.directdownload/client.zip";
-        const string target = "Stealth Client.zip";
-        const string clientExe = "Stealth Client.exe"; // For launching it afterwards
+        const string url = @"http://www.urltozipfile.directdownload/client.zip"; // Url to .zip
+        const string zipTarget = "Stealth Client.zip";
+        const string exeTarget = "Stealth Client.exe";
 
         // Download speed
-        System.Timers.Timer timer;
-        int dlSpeed;
+        System.Timers.Timer dlElapsedTimer; // Elapsed timer
+        Int64 iRunningByteTotal = 0; // Total bytes for calculating speed
+        int dlSpeed, dlTotalDSecs; // Speed and total deciseconds
         bool dlOverKbs;
-        int cSecs;
-        byte[] byteBuffer;
 
         private void bgWorker_Work(object sender, DoWorkEventArgs e)
         {
             try
             {
-                Uri uri = new Uri(url);
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
+                if (File.Exists(zipTarget))
+                    File.Delete(zipTarget);
+
+                Uri zipUri = new Uri(url);
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(zipUri);
                 HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                Int64 iFullSize = response.ContentLength;
                 response.Close();
 
-                if (File.Exists(target))
-                    File.Delete(target);
-
-                Int64 iSize = response.ContentLength;
-                Int64 iRunningByteTotal = 0;
-
                 using (WebClient client = new WebClient())
+                using (Stream streamRemote = client.OpenRead(zipUri))
+                using (Stream streamLocal = new FileStream(zipTarget, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
-                    using (Stream streamRemote = client.OpenRead(new Uri(url)))
+                    byte[] data = new byte[iFullSize];
+                    int iByteSize = 0;
+
+                    // Initializing timer
+                    dlOverKbs = false;
+                    dlElapsedTimer = new System.Timers.Timer();
+                    dlElapsedTimer.Elapsed += new ElapsedEventHandler(DLSpeed);
+                    dlElapsedTimer.Interval = 100;
+                    dlElapsedTimer.Enabled = true;
+                    dlElapsedTimer.Start();
+
+                    while ((iByteSize = streamRemote.Read(data, 0, data.Length)) > 0)
                     {
-                        using (Stream streamLocal = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None))
-                        {
-                            int iByteSize = 0;
-                            byteBuffer = new byte[iSize];
-                            dlOverKbs = false;
-                            timer = new System.Timers.Timer();
-                            timer.Elapsed += new ElapsedEventHandler(DLSpeed);
-                            timer.Interval = 100;
-                            timer.Enabled = true;
-                            timer.Start();
+                        streamLocal.Write(data, 0, iByteSize);
+                        iRunningByteTotal += iByteSize;
 
-                            while ((iByteSize = streamRemote.Read(byteBuffer, 0, byteBuffer.Length)) > 0)
-                            {
-                                streamLocal.Write(byteBuffer, 0, iByteSize);
-                                iRunningByteTotal += iByteSize;
+                        double dIndex = (double)(iRunningByteTotal);
+                        double dTotal = (double)data.Length;
+                        double dProgressPercentage = (dIndex / dTotal);
+                        int iProgressPercentage = (int)(dProgressPercentage * 100);
 
-                                double dIndex = (double)(iRunningByteTotal);
-                                double dTotal = (double)byteBuffer.Length;
-                                double dProgressPercentage = (dIndex / dTotal);
-                                int iProgressPercentage = (int)(dProgressPercentage * 100);
-
-                                bgWorker.ReportProgress(iProgressPercentage);
-                            }
-                            streamLocal.Close();
-                        }
-                        streamRemote.Close();
+                        bgWorker.ReportProgress(iProgressPercentage);
                     }
+
+                    streamLocal.Close();
+                    streamRemote.Close();
                 }
             }
             catch (Exception ex)
             {
+                try
+                {
+                    if (File.Exists(zipTarget))
+                        File.Delete(zipTarget);
+                }
+                catch { }
                 MessageBox.Show("There was an error with the updater. Check your connection and try running as an administrator.\r\n\r\n" + ex.Message);
                 Application.Exit();
             }
@@ -85,28 +87,28 @@ namespace Updater
         private void bgWorker_Progress(object sender, ProgressChangedEventArgs e)
         {
             if (dlOverKbs)
-                this.Text = "Updating Stealth Client.. " + e.ProgressPercentage + "% - (" + dlSpeed / 1000 + " kb/s)";
+                this.Text = "Updating Stealth Client.. " + dlSpeed / 1000 + " kb/s)";
             else
-                this.Text = "Updating Stealth Client.. " + e.ProgressPercentage + "& - (" + dlSpeed + " b/s)";
+                this.Text = "Updating Stealth Client.. " + dlSpeed + " b/s)";
             progressBar.Value = e.ProgressPercentage;
         }
 
         private void bgWorker_Finish(object sender, RunWorkerCompletedEventArgs e)
         {
-            timer.Stop();
+            dlElapsedTimer.Stop();
             try
             {
-                if (File.Exists(target))
+                if (File.Exists(zipTarget))
                 {
-                    using (ZipFile zip = new ZipFile(target))
+                    using (ZipFile zip = new ZipFile(zipTarget))
                     {
                         zip.ExtractAll(Directory.GetCurrentDirectory(), ExtractExistingFileAction.OverwriteSilently);
                         zip.Dispose();
                     }
 
-                    File.Delete(target);
+                    File.Delete(zipTarget);
                     Process start = new Process();
-                    start.StartInfo.FileName = clientExe;
+                    start.StartInfo.FileName = exeTarget;
                     start.StartInfo.Arguments = "ProcessStart.cs";
                     start.Start();
                     Application.Exit();
@@ -122,12 +124,9 @@ namespace Updater
         // Calculate download speed (timer tick eventhandler)
         void DLSpeed(object source, ElapsedEventArgs e)
         {
-            ++cSecs;
-            dlSpeed = byteBuffer.Length * 8 / (cSecs * 10);
-            if (dlSpeed > 1000)
-                dlOverKbs = true;
-            else
-                dlOverKbs = false;
+            ++dlTotalDSecs;
+            dlSpeed = (int)iRunningByteTotal / (dlTotalDSecs / 10);
+            dlOverKbs = dlSpeed > 1000 ? true : false;
         }
 
         private void Updater_Load(object sender, EventArgs e)

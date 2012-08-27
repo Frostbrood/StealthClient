@@ -1,8 +1,6 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Microsoft.Win32;
 
 namespace StealthClient
 {
@@ -22,7 +20,7 @@ namespace StealthClient
                 GUIDKey.SetValue("GUID", GUID);
             }
 
-            return GUID;
+            return (string)GUIDKey.GetValue("GUID"); // Null if not available
         }
 
         public static bool AuthenticateUser(string sUser, string sPass)

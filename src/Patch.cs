@@ -8,13 +8,13 @@ namespace StealthClient
 {
     class Patch
     {
-        const string updaterExe = "Stealth Client Updater.exe";
-        const string versionFileUrl = @"http://www.adresstotxtfilewithversionnumber.com/version.txt";
+        const string exeUpdater = "Stealth Client Updater.exe";
+        const string versionRemoteUrl = @"http://www.adresstotxtfilewithversionnumber.com/version.txt"; // Url to version file
         static string versionLocal = Application.ProductVersion;
 
         public static bool CheckForUpdates()
         {
-            string versionRemote = CheckRemoteVersion(versionFileUrl);
+            string versionRemote = CheckRemoteVersion(versionRemoteUrl);
             if (string.IsNullOrEmpty(versionRemote))
             {
                 MessageBox.Show("Stealth Client couldn't obtain version information.\r\nMake sure that you are connected to the internet.");
@@ -54,7 +54,7 @@ namespace StealthClient
         static void Update()
         {
             Process prUpdater = new Process();
-            prUpdater.StartInfo.FileName = updaterExe;
+            prUpdater.StartInfo.FileName = exeUpdater;
             prUpdater.StartInfo.Arguments = "ProcessStart.cs";
             prUpdater.Start();
             Application.Exit();

@@ -18,6 +18,11 @@ namespace StealthClient
 
         private void Client_Load(object sender, EventArgs e)
         {
+            //Sample URLs for proof of concept --Remove
+            Session.sesAllowedUrls.Add("http://www.ac-web.org/");
+            Session.sesAllowedUrls.Add("http://ac-web.org/");
+            Session.sesBlockedUrls.Add("http://www.ac-web.org/forums/usercp.php/");
+
             this.Hide();
             Authenticate auth = new Authenticate();
             DialogResult authDr = new DialogResult();
@@ -31,22 +36,26 @@ namespace StealthClient
             {
                 MessageBox.Show("The client would close now, but that's disabled for the sake of testing.");
             }
+
+            this.mainBrowser.Navigating += new WebBrowserNavigatingEventHandler(this.mainBrowser_Navigating);
+            mainBrowser.Navigate(@"http://www.ac-web.org/");
         }
 
-        private void webBrowser1_Navigating(object sender, WebBrowserNavigatingEventArgs e)
+        bool UrlCheck(string url)
         {
-            //Sample URLs for proof of concept --Remove
-            Session.sesAllowedUrls.Add("http://www.ac-web.org/");
-            Session.sesAllowedUrls.Add("http://ac-web.org/");
-            Session.sesBlockedUrls.Add("http://www.ac-web.org/forums/usercp.php");
+            foreach (string blockedUrl in Session.sesBlockedUrls)
+                if (url == blockedUrl)
+                    return false;
+            foreach (string allowedUrl in Session.sesAllowedUrls)
+                if (url == allowedUrl)
+                    return true;
+            return false;
+        }
 
-            foreach (string lstring in Session.sesAllowedUrls)
-                if (e.Url.ToString().StartsWith(lstring))
-                    e.Cancel = false;
-
-            foreach (string lstring in Session.sesBlockedUrls)
-                if (e.Url.ToString().StartsWith(lstring))
-                    e.Cancel = true;
+        private void mainBrowser_Navigating(object sender, WebBrowserNavigatingEventArgs e)
+        {
+            if (!UrlCheck(e.Url.ToString()))
+                e.Cancel = true;
         }
     }
 }
